@@ -6,19 +6,29 @@ from keras._tf_keras.keras.preprocessing.image import ImageDataGenerator
 # image recognition/classification program, including 
 # data preprocessing, model building, training, evaluation and GUI.<---------------------------------
 
-base_dir = r'C:\Users\Ahmad\Python Workspace\CSC583\training'  
+base_dir = r'C:\Users\Ahmad\Python Workspace\CSC583\training'  #temp 
 
 # CLASS = {ANGRY,HAPPY,SAD,NEUTRAL}
 selected_classes = ['angry', 'happy', 'sad', 'neutral']
 
-# Data augmentation for training
+# Data augmentation technique for training
 train_datagen = ImageDataGenerator(
-    rescale=1./255,
-    horizontal_flip=True,
-    rotation_range=10,
-    zoom_range=0.1,
+    rescale=1./255, #Normalizaiton chg color
+    horizontal_flip=True, #image flip
+    rotation_range=10, #rotate
+    zoom_range=0.1, #zoom
+
     validation_split=0.2  # reserve part of training for validation
+
+    # # other technique that lower the accuracy
+    # width_shift_range=0.1
+    # height_shift_range=0.1
+    # shear_range=0.1
+    # brightness_range=(0.8, 1.2)
 )
+
+#Data Normalization bla/whi
+
 
 # Load training data
 train_generator = train_datagen.flow_from_directory(
@@ -43,17 +53,17 @@ val_generator = train_datagen.flow_from_directory(
     subset='validation'
 )
 
-# Test data (no augmentation)
-test_datagen = ImageDataGenerator(rescale=1./255)
-test_generator = test_datagen.flow_from_directory(
-    os.path.join(base_dir, 'test'),
-    target_size=(48, 48),
-    color_mode='grayscale',
-    classes=selected_classes,
-    class_mode='categorical',
-    batch_size=64,
-    shuffle=False
-)
+# # Test data (no augmentation)
+# test_datagen = ImageDataGenerator(rescale=1./255)
+# test_generator = test_datagen.flow_from_directory(
+#     os.path.join(base_dir, 'test'),
+#     target_size=(48, 48),
+#     color_mode='grayscale',
+#     classes=selected_classes,
+#     class_mode='categorical',
+#     batch_size=64,
+#     shuffle=False
+# )
 
 # MODEL CONVOLUTIONAL NEURAL NETWORK
 from tensorflow import keras
@@ -63,10 +73,10 @@ from tensorflow import keras
 from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
 model = Sequential([
-    Conv2D(32, (3,3), activation='relu', input_shape=(48,48,1)),
+    Conv2D(32, (3,3), activation='relu', input_shape=(48,48,1)), #Filter 1 
     MaxPooling2D(2,2),
     
-    Conv2D(64, (3,3), activation='relu'),
+    Conv2D(64, (3,3), activation='relu'), #Filter 2
     MaxPooling2D(2,2),
     
     Flatten(),
@@ -97,7 +107,7 @@ def load_data(base_dir, selected_classes):
         color_mode='grayscale',
         classes=selected_classes,
         class_mode='categorical',
-        batch_size=64,
+        batch_size=25,
         shuffle=True,
         subset='training'
     )
@@ -108,7 +118,7 @@ def load_data(base_dir, selected_classes):
         color_mode='grayscale',
         classes=selected_classes,
         class_mode='categorical',
-        batch_size=64,
+        batch_size=25,
         shuffle=True,
         subset='validation'
     )
@@ -120,7 +130,7 @@ def load_data(base_dir, selected_classes):
         color_mode='grayscale',
         classes=selected_classes,
         class_mode='categorical',
-        batch_size=64,
+        batch_size=25,
         shuffle=False
     )
 
