@@ -1,10 +1,9 @@
 # Facial Expression Detector (GUI Test)
 
-This project is a **Simple Face Detector** for a Facial Expression Detector, developed using **Python's library**. The interface consists of a simple menu-driven navigation system with multiple pages (frames), allowing smooth switching between sections of the application.
+A simple CNN model with a GUI.
 
-## 🧩 Features
+## Basic Feature 
 
-**Basic Feature** 
  Retrain the model if unsatisfied
  Upload **TEST** image if needed to check expressions
 
@@ -13,7 +12,18 @@ This project is a **Simple Face Detector** for a Facial Expression Detector, dev
 Make sure you have Python 3.x installed.
 
 1. Clone or download this repository.
-2. Run the Python script:
+
+**Libraries need open cmd paste this**
+
+```bash
+
+pip install numpy pandas matplotlib seaborn tensorflow scikit-learn
+
+pip install Keras-Preprocessing
+
+```
+
+2. Run the Python script: **main.py*
 
 # GUI Example
 
