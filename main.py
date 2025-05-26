@@ -19,46 +19,61 @@ from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 #     batch_size=64,
 #     shuffle=False
 # )
+
+# ====================
+# === CONFIGURATION == nak tambah apa-apa kat sini ja 
+# ====================
+
 EPOCH = 100
+BATCH_SIZE = 25
+IMAGE_SIZE = (48, 48)
+INPUT_SHAPE = (48, 48, 1)
+NUM_CLASSES = 4
+SELECTED_CLASSES = ['angry', 'happy', 'sad', 'neutral']
+BASE_DIR = r'CSC583\training'
+MODEL_PATH = "expression_model.keras"
+HISTORY_PATH = "training_history.pkl"
+
+LAYER_CONFIG = [
+    {"filters": 32, "kernel_size": (3, 3)},
+    {"filters": 64, "kernel_size": (3, 3)},
+    # {"filters": 64,(SIZE FILTER) "kernel_size": (3, 3)(MATRIX SIZE)},
+    # Tambah layer kat sini kalau nak testing ikut kat atas tu
+]
+
+DENSE_UNITS = 128
+DROPOUT_RATE = 0.5
+
+
 #LOAD DATA INTO MODEL
 
 def load_data(base_dir, selected_classes):
-
-    # Data augmentation technique for training
     train_datagen = ImageDataGenerator(
-        rescale=1./255, #Normalizaiton chg color
-        horizontal_flip=True, #image flip
-        rotation_range=10, #rotate
-        zoom_range=0.1, #zoom
-
-        validation_split=0.2  # reserve part of training for validation
-
-        # # # other technique that lower the accuracy
-        # # width_shift_range=0.1
-        # # height_shift_range=0.1
-        # # shear_range=0.1
-        # # brightness_range=(0.8, 1.2)
+        rescale=1./255,
+        horizontal_flip=True,
+        rotation_range=10,
+        zoom_range=0.1,
+        validation_split=0.2
     )
 
-    # Load training data
     train_generator = train_datagen.flow_from_directory(
         os.path.join(base_dir, 'train'),
-        target_size=(48, 48),
+        target_size=IMAGE_SIZE,
         color_mode='grayscale',
         classes=selected_classes,
         class_mode='categorical',
-        batch_size=25,
+        batch_size=BATCH_SIZE,
         shuffle=True,
         subset='training'
     )
 
     val_generator = train_datagen.flow_from_directory(
         os.path.join(base_dir, 'train'),
-        target_size=(48, 48),
+        target_size=IMAGE_SIZE,
         color_mode='grayscale',
         classes=selected_classes,
         class_mode='categorical',
-        batch_size=25,
+        batch_size=BATCH_SIZE,
         shuffle=True,
         subset='validation'
     )
@@ -66,47 +81,35 @@ def load_data(base_dir, selected_classes):
     test_datagen = ImageDataGenerator(rescale=1./255)
     test_generator = test_datagen.flow_from_directory(
         os.path.join(base_dir, 'test'),
-        target_size=(48, 48),
+        target_size=IMAGE_SIZE,
         color_mode='grayscale',
         classes=selected_classes,
         class_mode='categorical',
-        batch_size=25,
+        batch_size=BATCH_SIZE,
         shuffle=False
     )
 
-    # testing
-    # print(f"Train samples: {train_generator.samples}")
-    # print(f"Validation samples: {val_generator.samples}")
-    # print(f"Test samples: {test_generator.samples}")
-
     return train_generator, val_generator, test_generator
 
+
 def build_model():
-    model = Sequential([
-        Conv2D(32, (3,3), activation='relu', input_shape=(48,48,1)), #Filter 1 
-        MaxPooling2D(2,2),
-        
-        Conv2D(64, (3,3), activation='relu'), #Filter 2
-        MaxPooling2D(2,2),
+    model = Sequential()
+    model.add(Conv2D(LAYER_CONFIG[0]["filters"], LAYER_CONFIG[0]["kernel_size"], activation='relu', input_shape=INPUT_SHAPE))
+    model.add(MaxPooling2D(2, 2))
 
-        # Conv2D(128, (3,3), activation='relu'), #Filter 3
-        # MaxPooling2D(2,2),
+    model.add(Conv2D(LAYER_CONFIG[1]["filters"], LAYER_CONFIG[1]["kernel_size"], activation='relu'))
+    model.add(MaxPooling2D(2, 2))
 
-        # Conv2D(256, (3,3), activation='relu'), #Filter 4
-        # MaxPooling2D(2,2),
+    # Optionally add more Conv2D + MaxPool2D layers here from LAYER_CONFIG
 
-        # lagi byk filter lagi over fitting (bila test 5 img lagi accuracy drop)
-        
-        
-        Flatten(),
-        Dense(128, activation='relu'),
-        Dropout(0.5),
-        Dense(4, activation='softmax')  # 4 classes
-    ])
+    model.add(Flatten())
+    model.add(Dense(DENSE_UNITS, activation='relu'))
+    model.add(Dropout(DROPOUT_RATE))
+    model.add(Dense(NUM_CLASSES, activation='softmax'))
 
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    # model.summary() testing
     return model
+
 
 #GUI HEREEEEEEEEEEEEEEEEEEEE
 
