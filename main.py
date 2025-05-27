@@ -24,7 +24,7 @@ from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 # === CONFIGURATION == nak tambah apa-apa kat sini ja 
 # ====================
 
-EPOCH = 100
+EPOCH = 60
 BATCH_SIZE = 25
 IMAGE_SIZE = (48, 48)
 INPUT_SHAPE = (48, 48, 1)
@@ -35,8 +35,10 @@ MODEL_PATH = "expression_model.keras"
 HISTORY_PATH = "training_history.pkl"
 
 LAYER_CONFIG = [
-    {"filters": 32, "kernel_size": (3, 3)},
-    {"filters": 64, "kernel_size": (3, 3)},
+    {"filters": 32, "kernel_size": (16, 16)},
+    {"filters": 64, "kernel_size": (9, 9)},
+    {"filters": 128, "kernel_size": (6, 6)},
+    {"filters": 256, "kernel_size": (3, 3)},
     # {"filters": 64,(SIZE FILTER) "kernel_size": (3, 3)(MATRIX SIZE)},
     # Tambah layer kat sini kalau nak testing ikut kat atas tu
 ]
@@ -50,7 +52,7 @@ DROPOUT_RATE = 0.5
 def load_data(base_dir, selected_classes):
     train_datagen = ImageDataGenerator(
         rescale=1./255,
-        horizontal_flip=True,
+        # horizontal_flip=True,
         rotation_range=10,
         zoom_range=0.1,
         validation_split=0.2
@@ -95,7 +97,7 @@ def load_data(base_dir, selected_classes):
 def build_model():
     model = Sequential()
     model.add(Conv2D(LAYER_CONFIG[0]["filters"], LAYER_CONFIG[0]["kernel_size"], activation='relu', input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(2, 2))
+    model.add(MaxPooling2D(3, 3))
 
     model.add(Conv2D(LAYER_CONFIG[1]["filters"], LAYER_CONFIG[1]["kernel_size"], activation='relu'))
     model.add(MaxPooling2D(2, 2))
@@ -150,9 +152,13 @@ def launch_gui(model, selected_classes,history,acc):
         if file_path:
             img_array = preprocess_image(file_path)
             prediction = model.predict(img_array)
-            predicted_class = selected_classes[np.argmax(prediction)]
 
-            result_label.config(text=f"Predicted: {predicted_class}")
+            predicted_index = np.argmax(prediction)
+            predicted_class = selected_classes[predicted_index]
+            confidence = prediction[0][predicted_index] * 100  
+
+            result_label.config(text=f"{predicted_class} ({confidence:.2f}%)")
+
 
             # Show the image
             img = Image.open(file_path).resize((150, 150))
