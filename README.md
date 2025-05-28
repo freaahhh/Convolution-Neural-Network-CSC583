@@ -1,30 +1,23 @@
 # Facial Expression Detector (GUI Test)
 
-A simple CNN model with a GUI.
+hehe
 
-## Basic Feature 
+1. Download as Zip atau fork
 
- Retrain the model if unsatisfied
- Upload **TEST** image if needed to check expressions
+2. run **auto_install.cmd* (Download python library kalau dah ada python)
 
-## How to Run
+3. Edit the Python script: **main.py*
 
-Make sure you have Python 3.x installed.
+![alt text](image-1.png)
 
-1. Clone or download this repository.
-
-**Libraries need open cmd paste this**
-
-```bash
-
-pip install numpy pandas matplotlib seaborn tensorflow scikit-learn
-
-pip install Keras-Preprocessing
-
-```
-
-2. Run the Python script: **main.py*
+4. Run **main.py* mula2 mmg slow enjoy
 
 # GUI Example
 
-![alt text](image.png)
+![alt text](image-2.png)
+
+![alt text](image-3.png)
+
+![alt text](image-4.png)
+
+![alt text](image-5.png)

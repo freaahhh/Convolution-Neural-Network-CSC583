@@ -24,21 +24,20 @@ from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 # === CONFIGURATION == nak tambah apa-apa kat sini ja 
 # ====================
 
+BASE_DIR = r'C:\Users\Ahmad\Python Workspace\CSC583\training' # <================================= ubah ni dulu
+
 EPOCH = 60
 BATCH_SIZE = 25
 IMAGE_SIZE = (48, 48)
 INPUT_SHAPE = (48, 48, 1)
 NUM_CLASSES = 4
 SELECTED_CLASSES = ['angry', 'happy', 'sad', 'neutral']
-BASE_DIR = r'CSC583\training'
 MODEL_PATH = "expression_model.keras"
 HISTORY_PATH = "training_history.pkl"
 
 LAYER_CONFIG = [
-    {"filters": 32, "kernel_size": (16, 16)},
-    {"filters": 64, "kernel_size": (9, 9)},
-    {"filters": 128, "kernel_size": (6, 6)},
-    {"filters": 256, "kernel_size": (3, 3)},
+    {"filters": 32, "kernel_size": (3, 3)},
+    {"filters": 64, "kernel_size": (3, 3)},
     # {"filters": 64,(SIZE FILTER) "kernel_size": (3, 3)(MATRIX SIZE)},
     # Tambah layer kat sini kalau nak testing ikut kat atas tu
 ]
@@ -121,33 +120,28 @@ from PIL import Image, ImageTk
 import numpy as np
 import pickle
 
-def launch_gui(model, selected_classes,history,acc):
+import matplotlib.pyplot as plt
 
-    
+def launch_gui(model, selected_classes, history, acc):
     def preprocess_image(image_path):
         img = Image.open(image_path).convert('L').resize((48, 48))
         img_array = np.array(img).reshape(1, 48, 48, 1) / 255.0
         return img_array
-    
+
     def retrain_model():
         nonlocal model
-
-        # Load and retrain
-        base_dir = r'C:\Users\Ahmad\Python Workspace\CSC583\training'
-        train_gen, val_gen, test_gen = load_data(base_dir, selected_classes)
+        train_gen, val_gen, test_gen = load_data(BASE_DIR, selected_classes)
         model = build_model()
         history = model.fit(train_gen, validation_data=val_gen, epochs=EPOCH)
-        model.save("expression_model.keras")
-        with open("training_history.pkl", 'wb') as f:
+        model.save(MODEL_PATH)
+        with open(HISTORY_PATH, 'wb') as f:
             pickle.dump(history.history, f)
-        
-        loss, acc = model.evaluate(test_gen)
-        acc_label.config(text=f"Current Accuracy : {acc:.2f}")
 
+        loss, new_acc = model.evaluate(test_gen)
+        acc_label.config(text=f"Current Accuracy : {new_acc:.2f}")
         result_label.config(text="Retraining completed!")
 
-
-    def classify_image():
+    def classify_single_image():
         file_path = filedialog.askopenfilename()
         if file_path:
             img_array = preprocess_image(file_path)
@@ -155,34 +149,142 @@ def launch_gui(model, selected_classes,history,acc):
 
             predicted_index = np.argmax(prediction)
             predicted_class = selected_classes[predicted_index]
-            confidence = prediction[0][predicted_index] * 100  
+            confidence = prediction[0][predicted_index] * 100
 
             result_label.config(text=f"{predicted_class} ({confidence:.2f}%)")
 
-
-            # Show the image
             img = Image.open(file_path).resize((150, 150))
             img = ImageTk.PhotoImage(img)
             image_label.config(image=img)
             image_label.image = img
 
-    # Create window
+    def classify_folder():
+        folder_path = filedialog.askdirectory(title="Select Folder of Images")
+        if folder_path:
+            confidences = []
+            files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+            current_class_label.config(text=f"Current Folder Testing: {os.path.basename(folder_path)}")
+
+            def process_image(index):
+                if index < len(files):
+                    img_path = os.path.join(folder_path, files[index])
+                    img_array = preprocess_image(img_path)
+                    prediction = model.predict(img_array)
+                    confidence = np.max(prediction) * 100
+                    predicted_class = selected_classes[np.argmax(prediction)]
+                    confidences.append(confidence)
+
+                    img = Image.open(img_path).resize((150, 150))
+                    img = ImageTk.PhotoImage(img)
+                    image_label.config(image=img)
+                    image_label.image = img
+                    result_label.config(text=f"{predicted_class} ({confidence:.2f}%) [{index+1}/{len(files)}]")
+
+                    root.after(10, lambda: process_image(index + 1))
+                else:
+                    avg_conf = sum(confidences) / len(confidences) if confidences else 0
+                    result_label.config(text=f"Confidence: {avg_conf:.2f}% on {len(confidences)} images")
+
+            process_image(0)
+
+    def test_all_classes_graph():
+        test_dir = os.path.join(BASE_DIR, 'test')
+        class_confidences = {}
+        all_image_paths = []
+
+        # Prepare all images with labels
+        for expression in selected_classes:
+            expression_path = os.path.join(test_dir, expression)
+            if not os.path.exists(expression_path):
+                continue
+
+            image_files = [
+                os.path.join(expression_path, file)
+                for file in os.listdir(expression_path)
+                if file.lower().endswith(('.png', '.jpg', '.jpeg'))
+            ]
+            all_image_paths.extend([(img_path, expression) for img_path in image_files])
+
+        index = 0
+        totals = {cls: 0 for cls in selected_classes}
+        counts = {cls: 0 for cls in selected_classes}
+
+        def process_next():
+            nonlocal index
+            if index < len(all_image_paths):
+                img_path, true_class = all_image_paths[index]
+                current_class_label.config(text=f"Current Class Testing: {true_class.capitalize()}")
+
+                img_array = preprocess_image(img_path)
+                prediction = model.predict(img_array)
+                predicted_class_index = np.argmax(prediction)
+                predicted_class = selected_classes[predicted_class_index]
+                confidence = prediction[0][predicted_class_index] * 100
+
+                totals[true_class] += confidence
+                counts[true_class] += 1
+
+                # Display image
+                img = Image.open(img_path).resize((150, 150))
+                img = ImageTk.PhotoImage(img)
+                image_label.config(image=img)
+                image_label.image = img
+
+                result_label.config(text=f"{predicted_class} ({confidence:.2f}%) [{index+1}/{len(all_image_paths)}]")
+
+                index += 1
+                root.after(10, process_next)  # Delay in ms before processing next image
+            else:
+                # Done with all images — show bar chart
+                for cls in selected_classes:
+                    if counts[cls]:
+                        class_confidences[cls] = totals[cls] / counts[cls]
+                    else:
+                        class_confidences[cls] = 0
+
+                plt.figure(figsize=(8, 5))
+                plt.bar(class_confidences.keys(), class_confidences.values(), color='skyblue')
+                plt.xlabel("Facial Expression Class")
+                plt.ylabel("Average Confidence (%)")
+                plt.title("Model Confidence per Class (Test Set)")
+                plt.ylim(0, 100)
+                plt.tight_layout()
+                plt.show()
+
+                current_class_label.config(text="Finished all classes.")
+
+        process_next()
+
+    # GUI
     root = tk.Tk()
     root.title("Facial Expression Detector")
-    root.geometry("300x300")
+    root.geometry("340x420")
 
-    
-    tk.Button(root, text="Choose Image", command=classify_image).pack(pady=10)
+    btn_frame = tk.Frame(root)
+    btn_frame.pack(pady=10)
+
+    tk.Button(btn_frame, text="Choose Image", command=classify_single_image).grid(row=0, column=0, padx=5)
+    tk.Button(btn_frame, text="Choose Folder", command=classify_folder).grid(row=0, column=1, padx=5)
+
+    tk.Button(root, text="Test All Classes", command=test_all_classes_graph).pack(pady=5)
     tk.Button(root, text="Retrain Model", command=retrain_model).pack(pady=5)
-    acc_label = tk.Label(root,text=f"Current Accuracy : {acc:.2f}")
+
+    acc_label = tk.Label(root, text=f"Current Accuracy : {acc:.2f}")
+
+    current_class_label = tk.Label(root, text="Current Class Testing: None")
+    current_class_label.pack()
+
     acc_label.pack()
 
     image_label = tk.Label(root)
     image_label.pack()
-    result_label = tk.Label(root, text="", font=("Arial", 16))
+
+    result_label = tk.Label(root, text="", font=("Arial", 14))
     result_label.pack(pady=10)
 
-    root.mainloop() #starts the gui (utk IDE buang ni pun takpe)
+    root.mainloop()
+
+
 
 # # graph plotting
 # import matplotlib.pyplot as plt
@@ -214,7 +316,7 @@ def launch_gui(model, selected_classes,history,acc):
 
 
 def main():
-    base_dir = r'C:\Users\Ahmad\Python Workspace\CSC583\training'
+    base_dir = BASE_DIR
     selected_classes = ['angry', 'happy', 'sad', 'neutral']
     acc = 0
     model_path = "expression_model.keras"
