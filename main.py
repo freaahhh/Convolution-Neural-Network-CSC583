@@ -1,92 +1,64 @@
 import os
+import tkinter as tk
+from tkinter import filedialog
+from PIL import Image, ImageTk
+import numpy as np
+import pickle
+import matplotlib.pyplot as plt
+
 from tensorflow import keras
 from keras import Sequential
 from keras._tf_keras.keras.preprocessing.image import ImageDataGenerator
 from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
-# Python code implementing the 
-# image recognition/classification program, including 
-# data preprocessing, model building, training, evaluation and GUI.<---------------------------------
-
-# # Test data (no augmentation)
-# test_datagen = ImageDataGenerator(rescale=1./255)
-# test_generator = test_datagen.flow_from_directory(
-#     os.path.join(base_dir, 'test'),
-#     target_size=(48, 48),
-#     color_mode='grayscale',
-#     classes=selected_classes,
-#     class_mode='categorical',
-#     batch_size=64,
-#     shuffle=False
-# )
-
-# ====================
-# === CONFIGURATION == nak tambah apa-apa kat sini ja 
-# ====================
-
-BASE_DIR = r'C:\Users\Ahmad\Python Workspace\CSC583\training' # <================================= ubah ni dulu
-
-EPOCH = 60
-BATCH_SIZE = 25
-IMAGE_SIZE = (48, 48)
-INPUT_SHAPE = (48, 48, 1)
-NUM_CLASSES = 4
-SELECTED_CLASSES = ['angry', 'happy', 'sad', 'neutral']
+# === Parameters ===
 MODEL_PATH = "expression_model.keras"
 HISTORY_PATH = "training_history.pkl"
-
-LAYER_CONFIG = [
-    {"filters": 32, "kernel_size": (3, 3)},
-    {"filters": 64, "kernel_size": (3, 3)},
-    # {"filters": 64,(SIZE FILTER) "kernel_size": (3, 3)(MATRIX SIZE)},
-    # Tambah layer kat sini kalau nak testing ikut kat atas tu
-]
-
-DENSE_UNITS = 128
-DROPOUT_RATE = 0.5
+BASE_DIR = r'C:\Users\Ahmad\Python Workspace\CSC583\training'
+SELECTED_CLASSES = ['angry', 'happy', 'sad', 'neutral']
 
 
-#LOAD DATA INTO MODEL
+def load_data(base_dir):
+    image_size = (48, 48)
+    batch_size = 32
 
-def load_data(base_dir, selected_classes):
     train_datagen = ImageDataGenerator(
         rescale=1./255,
-        # horizontal_flip=True,
+        horizontal_flip=True,
         rotation_range=10,
-        zoom_range=0.1,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
         validation_split=0.2
     )
 
     train_generator = train_datagen.flow_from_directory(
         os.path.join(base_dir, 'train'),
-        target_size=IMAGE_SIZE,
+        target_size=image_size,
         color_mode='grayscale',
-        classes=selected_classes,
+        classes=SELECTED_CLASSES,
         class_mode='categorical',
-        batch_size=BATCH_SIZE,
-        shuffle=True,
+        batch_size=batch_size,
         subset='training'
     )
 
     val_generator = train_datagen.flow_from_directory(
         os.path.join(base_dir, 'train'),
-        target_size=IMAGE_SIZE,
+        target_size=image_size,
         color_mode='grayscale',
-        classes=selected_classes,
+        classes=SELECTED_CLASSES,
         class_mode='categorical',
-        batch_size=BATCH_SIZE,
-        shuffle=True,
+        batch_size=batch_size,
         subset='validation'
     )
 
     test_datagen = ImageDataGenerator(rescale=1./255)
     test_generator = test_datagen.flow_from_directory(
         os.path.join(base_dir, 'test'),
-        target_size=IMAGE_SIZE,
+        target_size=image_size,
         color_mode='grayscale',
-        classes=selected_classes,
+        classes=SELECTED_CLASSES,
         class_mode='categorical',
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         shuffle=False
     )
 
@@ -94,187 +66,118 @@ def load_data(base_dir, selected_classes):
 
 
 def build_model():
-    model = Sequential()
-    model.add(Conv2D(LAYER_CONFIG[0]["filters"], LAYER_CONFIG[0]["kernel_size"], activation='relu', input_shape=INPUT_SHAPE))
-    model.add(MaxPooling2D(3, 3))
-
-    model.add(Conv2D(LAYER_CONFIG[1]["filters"], LAYER_CONFIG[1]["kernel_size"], activation='relu'))
-    model.add(MaxPooling2D(2, 2))
-
-    # Optionally add more Conv2D + MaxPool2D layers here from LAYER_CONFIG
-
-    model.add(Flatten())
-    model.add(Dense(DENSE_UNITS, activation='relu'))
-    model.add(Dropout(DROPOUT_RATE))
-    model.add(Dense(NUM_CLASSES, activation='softmax'))
-
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=(48, 48, 1)),
+        MaxPooling2D(3, 3),
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D(2, 2),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(len(SELECTED_CLASSES), activation='softmax')
+    ])
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
 
-#GUI HEREEEEEEEEEEEEEEEEEEEE
+def preprocess_image(image_path):
+    img = Image.open(image_path).convert('L').resize((48, 48))
+    img_array = np.array(img).reshape(1, 48, 48, 1) / 255.0
+    return img_array
 
-import tkinter as tk
-from tkinter import filedialog
-from PIL import Image, ImageTk
-import numpy as np
-import pickle
 
-import matplotlib.pyplot as plt
-
-def launch_gui(model, selected_classes, history, acc):
-    def preprocess_image(image_path):
-        img = Image.open(image_path).convert('L').resize((48, 48))
-        img_array = np.array(img).reshape(1, 48, 48, 1) / 255.0
-        return img_array
-
-    def retrain_model():
+def launch_gui(model, history, acc):
+    def retrain():
         nonlocal model
-        train_gen, val_gen, test_gen = load_data(BASE_DIR, selected_classes)
+        train_gen, val_gen, test_gen = load_data(BASE_DIR)
         model = build_model()
-        history = model.fit(train_gen, validation_data=val_gen, epochs=EPOCH)
+        history = model.fit(train_gen, validation_data=val_gen, epochs=40)
         model.save(MODEL_PATH)
         with open(HISTORY_PATH, 'wb') as f:
             pickle.dump(history.history, f)
-
-        loss, new_acc = model.evaluate(test_gen)
+        _, new_acc = model.evaluate(test_gen)
         acc_label.config(text=f"Current Accuracy : {new_acc:.2f}")
-        result_label.config(text="Retraining completed!")
+        result_label.config(text="Retraining complete!")
 
-    def classify_single_image():
+    def classify_image():
         file_path = filedialog.askopenfilename()
         if file_path:
             img_array = preprocess_image(file_path)
             prediction = model.predict(img_array)
+            predicted_idx = np.argmax(prediction)
+            class_name = SELECTED_CLASSES[predicted_idx]
+            confidence = prediction[0][predicted_idx] * 100
 
-            predicted_index = np.argmax(prediction)
-            predicted_class = selected_classes[predicted_index]
-            confidence = prediction[0][predicted_index] * 100
-
-            result_label.config(text=f"{predicted_class} ({confidence:.2f}%)")
+            result_label.config(text=f"{class_name} ({confidence:.2f}%)")
 
             img = Image.open(file_path).resize((150, 150))
             img = ImageTk.PhotoImage(img)
             image_label.config(image=img)
             image_label.image = img
 
-    def classify_folder():
-        folder_path = filedialog.askdirectory(title="Select Folder of Images")
-        if folder_path:
-            confidences = []
-            files = [f for f in os.listdir(folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-            current_class_label.config(text=f"Current Folder Testing: {os.path.basename(folder_path)}")
-
-            def process_image(index):
-                if index < len(files):
-                    img_path = os.path.join(folder_path, files[index])
-                    img_array = preprocess_image(img_path)
-                    prediction = model.predict(img_array)
-                    confidence = np.max(prediction) * 100
-                    predicted_class = selected_classes[np.argmax(prediction)]
-                    confidences.append(confidence)
-
-                    img = Image.open(img_path).resize((150, 150))
-                    img = ImageTk.PhotoImage(img)
-                    image_label.config(image=img)
-                    image_label.image = img
-                    result_label.config(text=f"{predicted_class} ({confidence:.2f}%) [{index+1}/{len(files)}]")
-
-                    root.after(10, lambda: process_image(index + 1))
-                else:
-                    avg_conf = sum(confidences) / len(confidences) if confidences else 0
-                    result_label.config(text=f"Confidence: {avg_conf:.2f}% on {len(confidences)} images")
-
-            process_image(0)
-
-    def test_all_classes_graph():
+    def test_all():
         test_dir = os.path.join(BASE_DIR, 'test')
-        class_confidences = {}
-        all_image_paths = []
+        all_data = []
 
-        # Prepare all images with labels
-        for expression in selected_classes:
-            expression_path = os.path.join(test_dir, expression)
-            if not os.path.exists(expression_path):
-                continue
+        for cls in SELECTED_CLASSES:
+            path = os.path.join(test_dir, cls)
+            if os.path.isdir(path):
+                for file in os.listdir(path):
+                    if file.lower().endswith(('.jpg', '.png', '.jpeg')):
+                        all_data.append((os.path.join(path, file), cls))
 
-            image_files = [
-                os.path.join(expression_path, file)
-                for file in os.listdir(expression_path)
-                if file.lower().endswith(('.png', '.jpg', '.jpeg'))
-            ]
-            all_image_paths.extend([(img_path, expression) for img_path in image_files])
+        idx = 0
+        totals = {cls: 0 for cls in SELECTED_CLASSES}
+        counts = {cls: 0 for cls in SELECTED_CLASSES}
 
-        index = 0
-        totals = {cls: 0 for cls in selected_classes}
-        counts = {cls: 0 for cls in selected_classes}
-
-        def process_next():
-            nonlocal index
-            if index < len(all_image_paths):
-                img_path, true_class = all_image_paths[index]
-                current_class_label.config(text=f"Current Class Testing: {true_class.capitalize()}")
-
-                img_array = preprocess_image(img_path)
+        def process():
+            nonlocal idx
+            if idx < len(all_data):
+                path, true_class = all_data[idx]
+                current_class_label.config(text=f"Current Class Testing: {true_class}")
+                img_array = preprocess_image(path)
                 prediction = model.predict(img_array)
-                predicted_class_index = np.argmax(prediction)
-                predicted_class = selected_classes[predicted_class_index]
-                confidence = prediction[0][predicted_class_index] * 100
-
+                pred_idx = np.argmax(prediction)
+                confidence = prediction[0][pred_idx] * 100
                 totals[true_class] += confidence
                 counts[true_class] += 1
 
-                # Display image
-                img = Image.open(img_path).resize((150, 150))
+                img = Image.open(path).resize((150, 150))
                 img = ImageTk.PhotoImage(img)
                 image_label.config(image=img)
                 image_label.image = img
+                result_label.config(text=f"{SELECTED_CLASSES[pred_idx]} ({confidence:.2f}%)")
 
-                result_label.config(text=f"{predicted_class} ({confidence:.2f}%) [{index+1}/{len(all_image_paths)}]")
-
-                index += 1
-                root.after(10, process_next)  # Delay in ms before processing next image
+                idx += 1
+                root.after(10, process)
             else:
-                # Done with all images — show bar chart
-                for cls in selected_classes:
-                    if counts[cls]:
-                        class_confidences[cls] = totals[cls] / counts[cls]
-                    else:
-                        class_confidences[cls] = 0
-
-                plt.figure(figsize=(8, 5))
-                plt.bar(class_confidences.keys(), class_confidences.values(), color='skyblue')
-                plt.xlabel("Facial Expression Class")
-                plt.ylabel("Average Confidence (%)")
-                plt.title("Model Confidence per Class (Test Set)")
+                avg = {cls: (totals[cls] / counts[cls] if counts[cls] else 0) for cls in SELECTED_CLASSES}
+                plt.bar(avg.keys(), avg.values(), color='skyblue')
                 plt.ylim(0, 100)
+                plt.title("Average Confidence per Class")
+                plt.ylabel("Confidence (%)")
                 plt.tight_layout()
                 plt.show()
-
                 current_class_label.config(text="Finished all classes.")
 
-        process_next()
+        process()
 
-    # GUI
     root = tk.Tk()
-    root.title("Facial Expression Detector")
+    root.title("Facial Expression Classifier")
     root.geometry("340x420")
 
-    btn_frame = tk.Frame(root)
-    btn_frame.pack(pady=10)
+    frame = tk.Frame(root)
+    frame.pack(pady=10)
 
-    tk.Button(btn_frame, text="Choose Image", command=classify_single_image).grid(row=0, column=0, padx=5)
-    tk.Button(btn_frame, text="Choose Folder", command=classify_folder).grid(row=0, column=1, padx=5)
-
-    tk.Button(root, text="Test All Classes", command=test_all_classes_graph).pack(pady=5)
-    tk.Button(root, text="Retrain Model", command=retrain_model).pack(pady=5)
+    tk.Button(frame, text="Choose Image", command=classify_image).grid(row=0, column=0, padx=5)
+    tk.Button(frame, text="Test All Classes", command=test_all).grid(row=0, column=1, padx=5)
+    tk.Button(root, text="Retrain Model", command=retrain).pack(pady=5)
 
     acc_label = tk.Label(root, text=f"Current Accuracy : {acc:.2f}")
+    acc_label.pack()
 
     current_class_label = tk.Label(root, text="Current Class Testing: None")
     current_class_label.pack()
-
-    acc_label.pack()
 
     image_label = tk.Label(root)
     image_label.pack()
@@ -285,100 +188,24 @@ def launch_gui(model, selected_classes, history, acc):
     root.mainloop()
 
 
-
-# # graph plotting
-# import matplotlib.pyplot as plt
-
-# def plot_training_progress(history):
-#     acc = history.history['accuracy']
-#     val_acc = history.history['val_accuracy']
-#     loss = history.history['loss']
-#     val_loss = history.history['val_loss']
-#     epochs_range = range(len(acc))
-
-#     plt.figure(figsize=(12, 5))
-
-#     plt.subplot(1, 2, 1)
-#     plt.plot(epochs_range, acc, label='Training Accuracy')
-#     plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-#     plt.legend(loc='lower right')
-#     plt.title('Accuracy Over Epochs')
-
-#     plt.subplot(1, 2, 2)
-#     plt.plot(epochs_range, loss, label='Training Loss')
-#     plt.plot(epochs_range, val_loss, label='Validation Loss')
-#     plt.legend(loc='upper right')
-#     plt.title('Loss Over Epochs')
-
-#     plt.tight_layout()
-#     plt.show()
-
-
-
 def main():
-    base_dir = BASE_DIR
-    selected_classes = ['angry', 'happy', 'sad', 'neutral']
-    acc = 0
-    model_path = "expression_model.keras"
-    history_path = "training_history.pkl"
-
-    train_gen, val_gen, test_gen = load_data(base_dir, selected_classes)
-
-    # If model and history exist
-    if os.path.exists(model_path) and os.path.exists(history_path):
-        print("Loading saved model and training history...")
-        model = keras.models.load_model(model_path)
-
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])  # Compile
-
-        loss, acc = model.evaluate(test_gen)  # Now test_gen is already loaded
-        print(f"Test accuracy: {acc:.2f}")
-
-        with open(history_path, 'rb') as f:
+    train_gen, val_gen, test_gen = load_data(BASE_DIR)
+    if os.path.exists(MODEL_PATH) and os.path.exists(HISTORY_PATH):
+        model = keras.models.load_model(MODEL_PATH)
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        _, acc = model.evaluate(test_gen)
+        with open(HISTORY_PATH, 'rb') as f:
             history = pickle.load(f)
-
     else:
-        # Train from scratch
         model = build_model()
-        model.summary()
-
-        history = model.fit(train_gen, validation_data=val_gen, epochs=EPOCH)
-
-        # Save model and history
-        model.save(model_path)
-        with open(history_path, 'wb') as f:
+        history = model.fit(train_gen, validation_data=val_gen, epochs=40)
+        model.save(MODEL_PATH)
+        with open(HISTORY_PATH, 'wb') as f:
             pickle.dump(history.history, f)
+        _, acc = model.evaluate(test_gen)
 
-        # Evaluate
-        loss, acc = model.evaluate(test_gen)
-        print(f"Test accuracy: {acc:.2f}")
+    launch_gui(model, history, acc)
 
-        
-
-    # Optional: visualize training history
-    # plot_training_progress(history)
-
-    # Launch GUI
-    launch_gui(model, selected_classes, history,acc)
-
-
-
-# # MAIN LOGIC
-# main testing 
-# def main(): 
-#     base_dir = r'C:\Users\Ahmad\Python Workspace\CSC583\training'  #TEMP
-#     selected_classes = ['angry', 'happy', 'sad', 'neutral']
-
-#     train_gen, val_gen, test_gen = load_data(base_dir, selected_classes)
-
-#     model = build_model()
-#     model.summary()
-
-#     model.fit(train_gen, validation_data=val_gen, epochs=100)
-
-#     loss, acc = model.evaluate(test_gen) #test the 5 image
-#     print(f"Test accuracy: {acc:.2f}")
-    
 
 if __name__ == "__main__":
     main()
