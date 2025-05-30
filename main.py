@@ -6,10 +6,14 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 
+TF_USE_LEGACY_KERAS=True
 from tensorflow import keras
 from keras import Sequential
 from keras._tf_keras.keras.preprocessing.image import ImageDataGenerator
-from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
+from keras.api.optimizers import Adam
+from keras.api.regularizers import l2
+
 
 # === Parameters ===
 MODEL_PATH = "expression_model.keras"
@@ -65,18 +69,24 @@ def load_data(base_dir):
     return train_generator, val_generator, test_generator
 
 
-def build_model():
-    model = Sequential([
-        Conv2D(32, (3, 3), activation='relu', input_shape=(48, 48, 1)),
-        MaxPooling2D(3, 3),
-        Conv2D(64, (3, 3), activation='relu'),
-        MaxPooling2D(2, 2),
-        Flatten(),
-        Dense(128, activation='relu'),
-        Dropout(0.5),
-        Dense(len(SELECTED_CLASSES), activation='softmax')
-    ])
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+def build_model(input_shape=(48, 48, 1), num_classes=4):
+    model = Sequential()
+    
+    model.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+
+    model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes, activation='softmax'))
+
+    model.compile(optimizer=Adam(learning_rate=0.0005), loss='categorical_crossentropy', metrics=['accuracy'])
+    
     return model
 
 
@@ -91,7 +101,17 @@ def launch_gui(model, history, acc):
         nonlocal model
         train_gen, val_gen, test_gen = load_data(BASE_DIR)
         model = build_model()
-        history = model.fit(train_gen, validation_data=val_gen, epochs=40)
+        history = model.fit(train_gen, validation_data=val_gen, epochs=100)
+
+        # # Tunjuk Loss Accuracy n Validation Accruacry
+        # plt.plot(history.history['accuracy'], label='Train Accuracy')
+        # plt.plot(history.history['val_accuracy'], label='Val Accuracy')
+        # plt.plot(history.history['loss'], label='Train Loss')
+        # plt.plot(history.history['val_loss'], label='Val Loss')
+        # plt.legend()
+        # plt.title("Training vs Validation Accuracy/Loss")
+        # plt.show()
+
         model.save(MODEL_PATH)
         with open(HISTORY_PATH, 'wb') as f:
             pickle.dump(history.history, f)
