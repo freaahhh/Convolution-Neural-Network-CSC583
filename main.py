@@ -18,7 +18,7 @@ from keras.api.regularizers import l2
 # === Parameters ===
 MODEL_PATH = "expression_model.keras"
 HISTORY_PATH = "training_history.pkl"
-BASE_DIR = r'C:\Users\Ahmad\Python Workspace\CSC583\training'
+BASE_DIR = r'C:\Users\Ahmad\Python Workspace\CSC583\training' # Change this to your dataset path
 SELECTED_CLASSES = ['angry', 'happy', 'sad', 'neutral']
 
 
@@ -132,7 +132,7 @@ def launch_gui(model, history, acc):
         with open(HISTORY_PATH, 'wb') as f:
             pickle.dump(history.history, f)
         _, new_acc = model.evaluate(test_gen)
-        acc_label.config(text=f"Current Accuracy : {new_acc:.2f}")
+        acc_label.config(text=f"Current Model Accuracy : {new_acc:.2f}")
         result_label.config(text="Retraining complete!")
 
     def classify_image():
