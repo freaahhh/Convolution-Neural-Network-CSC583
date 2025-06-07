@@ -250,11 +250,11 @@ def launch_gui(model, selected_classes, history, acc):
 
                 plt.figure(figsize=(8, 5), facecolor="#e8d7f7")
                 ax = plt.gca()  # Get current axes
-                ax.set_facecolor("#f5f1cf")  # Inner plot area background
-                plt.bar(class_confidences.keys(), class_confidences.values(), color=colors)
-                plt.xlabel("Facial Expression Class")
-                plt.ylabel("Average Confidence (%)")
-                plt.title("Model Confidence per Class (Test Set)")
+                ax.set_facecolor("#F5F5DC")  # Inner plot area background
+                plt.bar(class_confidences.keys(), class_confidences.values(), color=colors, edgecolor="black", linewidth=0.5)
+                plt.xlabel("Facial Expression Class", fontstyle="italic")
+                plt.ylabel("Average Confidence (%)", fontstyle="italic")
+                plt.title("Model Confidence per Class (Test Set)", fontweight="bold", fontstyle="italic")
                 plt.ylim(0, 100)
                 plt.tight_layout()
                 plt.show()
@@ -284,24 +284,24 @@ def launch_gui(model, selected_classes, history, acc):
     button1_style = base_button_style.copy()
     button1_style.update({
         "bg": "#A020F0",
-        "activebackground": "#F58461"
+        "activebackground": "#9B2805"
     })
 
     button2_style = base_button_style.copy()
     button2_style.update({
         "bg": "#3C0470",
-        "activebackground": "#F58461"
+        "activebackground": "#9B2805"
     })
 
     button3_style = base_button_style.copy()
     button3_style.update({
         "bg": "#5B3B6B",
-        "activebackground": "#F58461",
-        "activeforeground": "black"  # override one value if needed
+        "activebackground": "#9B2805",
+        #"activeforeground": "black"  
     })
 
     # RESULT at the top
-    result_label = tk.Label(root, text="", font=("Arial", 14, "bold"), bg="#e8d7f7", fg="#3C0470")
+    result_label = tk.Label(root, text="", font=("Arial", 14, "bold"), bg="#e8d7f7", fg="#9B2805")
     result_label.pack(pady=10)
 
     # IMAGE
