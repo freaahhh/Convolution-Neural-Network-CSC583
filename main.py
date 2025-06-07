@@ -146,6 +146,9 @@ def launch_gui(model, selected_classes, history, acc):
         if file_path:
             img_array = preprocess_image(file_path)
             prediction = model.predict(img_array)
+            folder_name = os.path.basename(os.path.dirname(file_path))
+            current_class_label.config(text=f"Current Folder Testing: {folder_name}")
+
 
             predicted_index = np.argmax(prediction)
             predicted_class = selected_classes[predicted_index]
