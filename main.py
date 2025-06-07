@@ -24,7 +24,7 @@ from keras.src.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 # === CONFIGURATION == nak tambah apa-apa kat sini ja 
 # ====================
 
-BASE_DIR = r'C:\Users\Ahmad\Python Workspace\CSC583\training' # <================================= ubah ni dulu
+BASE_DIR = r'D:\Xampp\htdocs\Convolution-Neural-Network-CSC583\training' # <================================= ubah ni dulu
 
 EPOCH = 60
 BATCH_SIZE = 25
@@ -242,8 +242,13 @@ def launch_gui(model, selected_classes, history, acc):
                     else:
                         class_confidences[cls] = 0
 
-                plt.figure(figsize=(8, 5))
-                plt.bar(class_confidences.keys(), class_confidences.values(), color='skyblue')
+                # Define a list of colors for each bar (match length to number of classes)
+                colors = ["#88261b", "#f5bf0c", "#0d4569", "#106E37"] 
+
+                plt.figure(figsize=(8, 5), facecolor="#e8d7f7")
+                ax = plt.gca()  # Get current axes
+                ax.set_facecolor("#f5f1cf")  # Inner plot area background
+                plt.bar(class_confidences.keys(), class_confidences.values(), color=colors)
                 plt.xlabel("Facial Expression Class")
                 plt.ylabel("Average Confidence (%)")
                 plt.title("Model Confidence per Class (Test Set)")
@@ -259,32 +264,65 @@ def launch_gui(model, selected_classes, history, acc):
     root = tk.Tk()
     root.title("Facial Expression Detector")
     root.geometry("340x420")
+    root.configure(bg="#e8d7f7") #Light purple background
 
-    btn_frame = tk.Frame(root)
+    btn_frame = tk.Frame(root, bg="#e8d7f7")
     btn_frame.pack(pady=10)
 
-    tk.Button(btn_frame, text="Choose Image", command=classify_single_image).grid(row=0, column=0, padx=5)
-    tk.Button(btn_frame, text="Choose Folder", command=classify_folder).grid(row=0, column=1, padx=5)
+    # Base button style (shared)
+    base_button_style = {
+        "fg": "white",
+        "activeforeground": "white",
+        "font": ("Arial", 10, "bold"),
+        "width": 15
+    }
 
-    tk.Button(root, text="Test All Classes", command=test_all_classes_graph).pack(pady=5)
-    tk.Button(root, text="Retrain Model", command=retrain_model).pack(pady=5)
+    # Individual styles using base + overrides
+    button1_style = base_button_style.copy()
+    button1_style.update({
+        "bg": "#A020F0",
+        "activebackground": "#F58461"
+    })
 
-    acc_label = tk.Label(root, text=f"Current Accuracy : {acc:.2f}")
+    button2_style = base_button_style.copy()
+    button2_style.update({
+        "bg": "#3C0470",
+        "activebackground": "#F58461"
+    })
 
-    current_class_label = tk.Label(root, text="Current Class Testing: None")
-    current_class_label.pack()
+    button3_style = base_button_style.copy()
+    button3_style.update({
+        "bg": "#5B3B6B",
+        "activebackground": "#F58461",
+        "activeforeground": "black"  # override one value if needed
+    })
 
-    acc_label.pack()
-
-    image_label = tk.Label(root)
-    image_label.pack()
-
-    result_label = tk.Label(root, text="", font=("Arial", 14))
+    # RESULT at the top
+    result_label = tk.Label(root, text="", font=("Arial", 14, "bold"), bg="#e8d7f7", fg="#3C0470")
     result_label.pack(pady=10)
 
+    # IMAGE
+    image_label = tk.Label(root, bg="#e8d7f7")  # No image yet
+    image_label.pack()
+
+    # ACCURACY + CURRENT CLASS
+    acc_label = tk.Label(root, text=f"Current Accuracy : {acc:.2f}", bg="#e8d7f7", fg="#340738", font=("Arial", 10, "bold"))
+    acc_label.pack()
+
+    current_class_label = tk.Label(root, text="Current Class Testing: None", bg="#e8d7f7", fg="#340738", font=("Arial", 10, "bold"))
+    current_class_label.pack()
+
+    # BUTTONS
+    btn_frame = tk.Frame(root, bg="#e8d7f7")
+    btn_frame.pack(pady=5)
+
+    tk.Button(btn_frame, text="Choose Image", command=classify_single_image, **button1_style).grid(row=0, column=0, padx=5)
+    tk.Button(btn_frame, text="Choose Folder", command=classify_folder, **button1_style).grid(row=0, column=1, padx=5)
+
+    tk.Button(root, text="Test All Classes", command=test_all_classes_graph, **button2_style).pack(pady=5)
+    tk.Button(root, text="Retrain Model", command=retrain_model, **button3_style).pack(pady=5)
+
     root.mainloop()
-
-
 
 # # graph plotting
 # import matplotlib.pyplot as plt
